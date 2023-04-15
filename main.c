@@ -9,7 +9,7 @@
 /*
  * Green LED blinker thread, times are in milliseconds.
  */
-static THD_WORKING_AREA(waThread1, 128);
+static THD_WORKING_AREA(waThread1, 1024);
 static THD_FUNCTION(Thread1, arg) {
 
   (void)arg;
@@ -20,21 +20,21 @@ static THD_FUNCTION(Thread1, arg) {
   }
 }
 
-static THD_WORKING_AREA(waThread2, 128);
+
+static THD_WORKING_AREA(waThread2, 1024);
 static THD_FUNCTION(Thread2, arg) {
 
   (void)arg;
   chRegSetThreadName("PuertoSerie");
-  /*
-   * Activates the serial driver 2 using the driver default configuration.
-   */
+
   sdStart(&LPSD1, NULL);
 
-  while (true) {
-    sdWrite(&LPSD1, (uint8_t*)"Hello world", strlen("Hello world"));
+  while(true) {
+    sdWrite(&LPSD1,"Hello world\r\n", strlen("Hello world\r\n"));
     chThdSleepMilliseconds(500);
   }
 }
+
 
 /*
  * Application entry point.
@@ -61,5 +61,9 @@ int main(void) {
    * Normal main() thread activity, in this demo it does nothing except
    * sleeping in a loop and check the button state.
    */
-
+  while(true)
+  {
+    chThdSleep(100);
+  }
+  return 0;
 }
