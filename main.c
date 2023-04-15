@@ -42,7 +42,10 @@ int main(void) {
   chVTObjectInit(&led_vt);
   chVTObjectInit(&serial_vt);
 
-  chVTSet(&led_vt, TIME_MS2I(1000), led_cb, NULL);
+
+  chVTSet(&led_vt, TIME_MS2I(500), led_cb, NULL);
+  chVTSet(&serial_vt, TIME_MS2I(1000), serial_cb, NULL);
+
 
   return 0;
 }
