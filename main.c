@@ -12,7 +12,6 @@ static virtual_timer_t serial_vt;
 static thread_reference_t trp = NULL;
 
 //LED timer callback
-/*
 static void led_cb(void *arg) {
 
   palToggleLine(LINE_LED_GREEN); //LED_toggle
@@ -21,7 +20,6 @@ static void led_cb(void *arg) {
   chSysUnlockFromISR();
   
 }
-*/
 
 //Serial Port timer2 callback
 static void serial_cb(void *arg) {
@@ -50,13 +48,11 @@ static THD_FUNCTION(Thread, arg) {
     chSysUnlock();
 
     //Desde el callback del timer se reanuda y sigue con sus operaciones
-    
+
     sdWrite(&LPSD1,"Hello world\r\n", strlen("Hello world\r\n"));
 
     //Seteamos el timer de vuelta para que siga imprimiendo cada 100ms
-    chSysLockFromISR();
-    chVTSetI(&serial_vt, TIME_MS2I(1000), serial_cb, NULL);
-    chSysUnlockFromISR();
+    chVTSet(&serial_vt, TIME_MS2I(1000), serial_cb, NULL);
 
   }
 }
@@ -67,13 +63,13 @@ int main(void) {
   chSysInit();
 
   /* Timers initialization.*/
-  //chVTObjectInit(&led_vt);
+  chVTObjectInit(&led_vt);
   chVTObjectInit(&serial_vt);
 
   chThdCreateStatic(waThread, sizeof(waThread), NORMALPRIO, Thread, NULL);
 
   chVTSet(&serial_vt, TIME_MS2I(1000), serial_cb, NULL);
-  //chVTSet(&led_vt, TIME_MS2I(100), led_cb, NULL);
+  chVTSet(&led_vt, TIME_MS2I(100), led_cb, NULL);
 
   
   return 0;
