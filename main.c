@@ -12,17 +12,18 @@ static virtual_timer_t serial_vt;
 static thread_reference_t trp = NULL;
 
 //LED timer callback
-static void led_cb(void *arg) {
+static void led_cb(virtual_timer_t *vtp, void *arg) {
 
   
   chSysLockFromISR();
+  palToggleLine(LINE_LED_GREEN); //LED_toggle
   chVTSetI(&led_vt, TIME_MS2I(100), led_cb, NULL);
   chSysUnlockFromISR();
   
 }
 
 //Serial Port timer2 callback
-static void serial_cb(void *arg) {
+static void serial_cb(virtual_timer_t *vtp, void *arg) {
 
     
     chSysLockFromISR();
@@ -40,7 +41,6 @@ static THD_FUNCTION(serial_thd, arg) {
 
   (void)arg;
   chRegSetThreadName("ImprimirPuerto");
-  palToggleLine(LINE_LED_GREEN); //LED_toggle
   sdStart(&LPSD1, NULL);
   sdWrite(&LPSD1,"Hello world\r\n", strlen("Hello world\r\n"));
   chVTSet(&serial_vt, TIME_MS2I(1000), serial_cb, NULL);
@@ -71,7 +71,7 @@ int main(void) {
   chVTObjectInit(&led_vt);
   chVTObjectInit(&serial_vt);
 
-  chThdCreateStatic(serial_thd, sizeof(serial_thd_wa), NORMALPRIO+3, serial_thd, NULL);
+  chThdCreateStatic(serial_thd_wa, sizeof(serial_thd_wa), NORMALPRIO+3, serial_thd, NULL);
 
   chVTSet(&led_vt, TIME_MS2I(100), led_cb, NULL);
   
