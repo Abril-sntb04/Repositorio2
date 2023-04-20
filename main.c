@@ -6,13 +6,14 @@
 #include "oslib_test_root.h"
 #include <chprintf.h>
 #include <string.h>
+//#include <inttypes.h>
 
 static virtual_timer_t led_vt;
 static virtual_timer_t serial_vt;
 
 
 static volatile msg_t mensaje=200;
-static msg_t msg_buffer[1];
+static msg_t msg_buffer[4];
 static mailbox_t mailbox_object;
 
 
@@ -49,21 +50,13 @@ static THD_FUNCTION(serial_thd, arg) {
 
   while(true) {
   msg_t mensaje_recibido;
-  uint8_t valor_byte[4];
-  char buffer[10];
 
     chMBFetchTimeout(&mailbox_object, &mensaje_recibido, TIME_INFINITE);
     chprintf(&LPSD1, ("Valor recibido: "));
+    //chprintf(&LPSD1, ("%" PRIu32 ,mensaje_recibido));
+    chprintf(&LPSD1, ("%lu",(long)mensaje_recibido));
+    chprintf(&LPSD1,"\r\n");
 
-    for(int i=0; i<4; i++)
-    {
-
-      valor_byte[i]= mensaje_recibido >> i*8;
-      chprintf(&LPSD1, ("%d", valor_byte[i]));
-      //chsnprintf(buffer, sizeof(valor_byte[i]), ("%d",valor_byte[i]));
-    }
-    //sdWrite(&LPSD1, ("Valor recibido: %s\r\n",buffer), strlen("Valor recibido: %s\r\n",buffer));
-    chprintf(&LPSD1, "\r\n");
   }
 }
 
