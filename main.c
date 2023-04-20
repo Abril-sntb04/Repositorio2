@@ -52,11 +52,7 @@ static THD_FUNCTION(serial_thd, arg) {
   msg_t mensaje_recibido;
 
     chMBFetchTimeout(&mailbox_object, &mensaje_recibido, TIME_INFINITE);
-    chprintf(&LPSD1, ("Valor recibido: "));
-    //chprintf(&LPSD1, ("%" PRIu32 ,mensaje_recibido));
-    chprintf(&LPSD1, ("%lu",(long)mensaje_recibido));
-    chprintf(&LPSD1,"\r\n");
-
+    chprintf(&LPSD1, "Valor recibido: %d \r\n",mensaje_recibido);
   }
 }
 
