@@ -4,14 +4,15 @@
 #include "halconf.h"
 #include "rt_test_root.h"
 #include "oslib_test_root.h"
+#include <chprintf.h>
 #include <string.h>
 
 static virtual_timer_t led_vt;
 static virtual_timer_t serial_vt;
 
 
-static volatile msg_t valor=1;
-static msg_t msg_buffer[1u];
+static volatile msg_t mensaje=200;
+static msg_t msg_buffer[1];
 static mailbox_t mailbox_object;
 
 
@@ -29,11 +30,10 @@ static void led_cb(virtual_timer_t *vtp, void *arg) {
 static void serial_cb(virtual_timer_t *vtp, void *arg) {
 
     chSysLockFromISR();
-    chMBPostI(&mailbox_object, valor);
-
+    chMBPostI(&mailbox_object, mensaje);
+    
     //Seteamos el timer de vuelta para que siga imprimiendo cada 100ms
     chVTSetI(&serial_vt, TIME_MS2I(1000), serial_cb, NULL);
-
     chSysUnlockFromISR();
 }
 
@@ -50,17 +50,20 @@ static THD_FUNCTION(serial_thd, arg) {
   while(true) {
   msg_t mensaje_recibido;
   uint8_t valor_byte[4];
+  char buffer[10];
 
-    chSysLockFromISR();
-    chMBFetchI(&mailbox_object, mensaje_recibido);
-    chSysUnlockFromISR();
+    chMBFetchTimeout(&mailbox_object, &mensaje_recibido, TIME_INFINITE);
+    chprintf(&LPSD1, ("Valor recibido: "));
 
     for(int i=0; i<4; i++)
     {
+
       valor_byte[i]= mensaje_recibido >> i*8;
-      sdWrite(&LPSD1, valor_byte[i] , sizeof(valor_byte[i]));
+      chprintf(&LPSD1, ("%d", valor_byte[i]));
+      //chsnprintf(buffer, sizeof(valor_byte[i]), ("%d",valor_byte[i]));
     }
-    
+    //sdWrite(&LPSD1, ("Valor recibido: %s\r\n",buffer), strlen("Valor recibido: %s\r\n",buffer));
+    chprintf(&LPSD1, "\r\n");
   }
 }
 
