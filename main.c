@@ -12,7 +12,7 @@ static virtual_timer_t led_vt;
 static virtual_timer_t serial_vt;
 
 
-static volatile msg_t mensaje=200;
+static volatile msg_t mensaje=1220;
 static msg_t msg_buffer[4];
 static mailbox_t mailbox_object;
 
@@ -30,6 +30,7 @@ static void led_cb(virtual_timer_t *vtp, void *arg) {
 //Serial Port timer2 callback
 static void serial_cb(virtual_timer_t *vtp, void *arg) {
 
+    mensaje++;
     chSysLockFromISR();
     chMBPostI(&mailbox_object, mensaje);
     
