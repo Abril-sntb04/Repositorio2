@@ -8,28 +8,35 @@
 #include <string.h>
 //#include <inttypes.h>
 
-static virtual_timer_t led_vt;
 static virtual_timer_t serial_vt;
-
 
 static volatile msg_t mensaje=1220;
 static msg_t msg_buffer[4];
 static mailbox_t mailbox_object;
 
 
-//LED timer callback
-static void led_cb(virtual_timer_t *vtp, void *arg) {
- 
+
+//LED blink timer 3 callback
+static void timer3_led_cb(GPTDriver *gptp, void *arg) {
+
   chSysLockFromISR();
   palToggleLine(LINE_LED_GREEN); //LED_toggle
-  chVTSetI(&led_vt, TIME_MS2I(100), led_cb, NULL);
   chSysUnlockFromISR();
   
 }
 
+
+static GPTConfig gpt3cfg = {
+  1000,           // Timer clock ?
+  timer3_led_cb   // Timer callback
+};
+
+
+
 //Serial Port timer2 callback
 static void serial_cb(virtual_timer_t *vtp, void *arg) {
 
+    chMBObjectInit(&mailbox_object, msg_buffer, sizeof(msg_buffer));
     mensaje++;
     chSysLockFromISR();
     chMBPostI(&mailbox_object, mensaje);
@@ -44,6 +51,7 @@ static THD_FUNCTION(serial_thd, arg) {
 
   (void)arg;
   chRegSetThreadName("ImprimirPuerto");
+  chVTObjectInit(&serial_vt);
   sdStart(&LPSD1, NULL);
 
   //Seteamos timer del puerto serial por primera vez
@@ -62,17 +70,36 @@ int main(void) {
   halInit();
   chSysInit();
 
-  /* Timers initialization.*/
-  chVTObjectInit(&led_vt);
-  chVTObjectInit(&serial_vt);
-
-  chMBObjectInit(&mailbox_object, msg_buffer, sizeof(msg_buffer));
-
   //Thread puerto serial
   chThdCreateStatic(serial_thd_wa, sizeof(serial_thd_wa), NORMALPRIO+3, serial_thd, NULL);
 
-  //Seteamos el timer del led por priemra vez
-  chVTSet(&led_vt, TIME_MS2I(100), led_cb, NULL);
+
+  palSetLineMode(LINE_LED_GREEN,PAL_MODE_OUTPUT_PUSHPULL);
+
+  gptStart(&GPTD3, &gpt3cfg); //Configurar y empezar timer 3
+  gptStartContinuous(&GPTD3, 1000); //El timer expira cada 1000ms = 1 segundo
+
+
+/*
+   palSetPadMode(IOPORT2, 7, PAL_MODE_OUTPUT_PUSHPULL);
+
+  sdStart(&SD1, NULL);
+  gptStart(&GPTD3, &gpt3cfg);
+
+  gptStartContinuous(&GPTD3, 500);
+
+  while (1) {
+    chprintf(chp, "OCR3A: %d, TCCR3B: %x, period: %d, counter: %d , TCNT3: %d\r\n",
+                   OCR3A,
+                   TCCR3B,
+                   GPTD3.period,
+                   GPTD3.counter,
+                   TCNT3);
+    chThdSleepMilliseconds(100);
+  }
+}
   
+  */
+ 
   return 0;
 }
