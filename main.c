@@ -19,15 +19,13 @@ static mailbox_t mailbox_object;
 //LED blink timer 3 callback
 static void timer3_led_cb(GPTDriver *gptp, void *arg) {
 
-  chSysLockFromISR();
   palToggleLine(LINE_LED_GREEN); //LED_toggle
-  chSysUnlockFromISR();
   
 }
 
 
 static GPTConfig gpt3cfg = {
-  1000,           // Timer clock ?
+  10000,           // Frecuencia en Hz del timer
   timer3_led_cb   // Timer callback
 };
 
@@ -77,7 +75,7 @@ int main(void) {
   palSetLineMode(LINE_LED_GREEN,PAL_MODE_OUTPUT_PUSHPULL);
 
   gptStart(&GPTD3, &gpt3cfg); //Configurar y empezar timer 3
-  gptStartContinuous(&GPTD3, 1000); //El timer expira cada 1000ms = 1 segundo
+  gptStartContinuous(&GPTD3, 10000); //El timer expira cada 10000tics= 10000 x 1/100000 s = 1 segundo
 
 
 /*
