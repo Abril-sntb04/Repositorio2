@@ -5,48 +5,58 @@
 #include <chprintf.h>
 #include <string.h>
 
+#define BUFFER_SIZE 4
 
-//LED blink timer 3 callback
-static void timer3_led_cb(GPTDriver *gptp, void *arg) {
+static objects_fifo_t miFifo;
+static uint64_t fifoBuffer[BUFFER_SIZE];
+static uint64_t fifoMailbox[BUFFER_SIZE];
 
-palToggleLine(LINE_LED_GREEN); //LED_toggle
+uint64_t num=12345;
 
+static THD_WORKING_AREA(fifoReceive_thd_wa, 1024);
+static THD_FUNCTION(fifoReceive_thd, arg) {
+
+  (void)arg;
+  chRegSetThreadName("fifoReceive");
+  sdStart(&LPSD1, NULL);
+
+  while(true) {
+  uint64_t num_recibido;
+
+    if(chFifoReceiveObjectTimeout(&miFifo,&num_recibido, TIME_INFINITE)==MSG_OK)
+    {
+      chprintf(&LPSD1, "Valor recibido: %d \r\n",num_recibido);
+    }
+    else
+    {
+    chprintf(&LPSD1, "Nada\r\n");
+    }
+    
+  }
 }
-
-
-static GPTConfig gpt3cfg = {
-  10000,           // Frecuencia en Hz del timer
-  timer3_led_cb   // Timer callback
-};
- 
 
 int main(void) {
 
   halInit();
   chSysInit();
+
+
+  chFifoObjectInit(&miFifo,sizeof(fifoBuffer),BUFFER_SIZE, (void *)fifoBuffer, fifoMailbox);
+  chThdCreateStatic(fifoReceive_thd_wa, sizeof(fifoReceive_thd_wa), NORMALPRIO+3, fifoReceive_thd, NULL);
   
-  //Configuración del pin del led como salida, y del pin del boton como entrada
   palSetLineMode(LINE_LED_GREEN,PAL_MODE_OUTPUT_PUSHPULL);
-  palSetLineMode(LINE_USER_BUTTON,PAL_MODE_INPUT);
 
-  //Habilitamos el evento de flanco ascendente en el pin del botón                    
-  palEnableLineEvent(LINE_USER_BUTTON, PAL_EVENT_MODE_RISING_EDGE);
 
-  sdStart(&LPSD1, NULL);
-  
-  gptStart(&GPTD3, &gpt3cfg); //Configurar y empezar timer 3
-  gptStartContinuous(&GPTD3, 10000); //El timer expira cada 10000tics= 10000 x 1/100000 s = 1 segundo
-
-  int n=0;
 
   while(true)
   {
-    palWaitLineTimeout(LINE_USER_BUTTON, TIME_INFINITE);
-    chprintf(&LPSD1, "Valor recibido: %d \r\n", n);
-    n++;
-
-    //Para evitar el debouncing que se pueda generar al presionar una vez el botón
-    chThdSleepMilliseconds(50);
+   
+    chFifoTakeObjectTimeout(&miFifo, TIME_IMMEDIATE);
+    chFifoSendObject(&miFifo, num);
+    num++;
+    
+    palToggleLine(LINE_LED_GREEN);
+    chThdSleepMilliseconds(200);
     
   }
 }
