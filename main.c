@@ -9,7 +9,7 @@
 
 static objects_fifo_t miFifo;
 static uint64_t fifoBuffer[BUFFER_SIZE];
-static uint64_t fifoMailbox[BUFFER_SIZE];
+static msg_t fifoMailbox[BUFFER_SIZE];
 
 uint64_t num=12345;
 
@@ -23,22 +23,23 @@ static THD_FUNCTION(fifoReceive_thd, arg) {
   while(true) {
 
   uint64_t *pointerRecibeValor;
-  uint64_t *pointerDelPointer=&pointerRecibeValor;
+  uint64_t **pointerDelPointer=&pointerRecibeValor;
 
-    if(chFifoReceiveObjectTimeout(&miFifo, pointerDelPointer, TIME_INFINITE)==MSG_OK)
-    {
+  if(chFifoReceiveObjectTimeout(&miFifo, (void **)pointerDelPointer, TIME_INFINITE)==MSG_OK)
+  {
 
-      uint64_t valorRecibido= (*pointerRecibeValor);
+    uint64_t valorRecibido=(*pointerRecibeValor);
       
-      chprintf(&LPSD1, "Valor recibido: %d \r\n", valorRecibido);
-     // chprintf(&LPSD1, "Pointer del valor recibido: %p \r\n", pointerRecibeValor);
-     // chprintf(&LPSD1, "Pointer del pointer del valor recibido: %p \r\n", pointerDelPointer);
-      chFifoReturnObject(&miFifo, pointerDelPointer);
+    chprintf(&LPSD1, "Valor recibido: %d \r\n", valorRecibido);
+    chprintf(&LPSD1, "Pointer del valor recibido: %p \r\n", pointerRecibeValor);
+    chprintf(&LPSD1, "Pointer del pointer del valor recibido: %p \r\n", pointerDelPointer);
+    chFifoReturnObject(&miFifo, (void *)pointerDelPointer);
     }
-    else
+   /*else
     {
     chprintf(&LPSD1, "Nada\r\n");
     }
+    */ 
     
   }
 }
@@ -48,7 +49,6 @@ int main(void) {
   halInit();
   chSysInit();
 
-
   chFifoObjectInit(&miFifo,sizeof(fifoBuffer),BUFFER_SIZE, (void *)fifoBuffer, fifoMailbox);
   chThdCreateStatic(fifoReceive_thd_wa, sizeof(fifoReceive_thd_wa), NORMALPRIO+3, fifoReceive_thd, NULL);
   
@@ -57,13 +57,13 @@ int main(void) {
   while(true)
   {
     uint64_t *receivedAddress= (uint64_t *)chFifoTakeObjectTimeout(&miFifo, TIME_IMMEDIATE); //Al pointer que me devuelve Take le estoy diciendo que es un pointer a un int de 64bits (8 bytes)
-   (*receivedAddress)=num; //Incrementamos el valor al que hace referencia receivedAdress (nuestro numero que queremos incrementar)
+   (*receivedAddress)=num; //copiamos el valor de num a donde apunta el puntero
     chFifoSendObject(&miFifo, receivedAddress);
 
-    num++; //Incrementamos el valor al que hace referencia receivedAdress (nuestro numero que queremos incrementar)
+    num++;
     
     palToggleLine(LINE_LED_GREEN);
-    chThdSleepMilliseconds(200);
+    chThdSleepMilliseconds(1000);
     
   }
 }
