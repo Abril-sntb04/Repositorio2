@@ -21,11 +21,20 @@ static THD_FUNCTION(fifoReceive_thd, arg) {
   sdStart(&LPSD1, NULL);
 
   while(true) {
-  uint64_t num_recibido;
 
-    if(chFifoReceiveObjectTimeout(&miFifo,&num_recibido, TIME_INFINITE)==MSG_OK)
+  uint64_t *pointerRecibeValor;
+  uint64_t *pointerDelPointer=&pointerRecibeValor;
+
+    if(chFifoReceiveObjectTimeout(&miFifo, pointerDelPointer, TIME_INFINITE)==MSG_OK)
     {
-      chprintf(&LPSD1, "Valor recibido: %d \r\n",num_recibido);
+
+      uint64_t valorRecibido= *pointerRecibeValor;
+     
+      
+      chprintf(&LPSD1, "Valor recibido: %d \r\n", valorRecibido);
+      chprintf(&LPSD1, "Pointer del valor recibido: %p \r\n", pointerRecibeValor);
+       chprintf(&LPSD1, "Pointer del pointer del valor recibido: %p \r\n", pointerDelPointer);
+      chFifoReturnObject(&miFifo, pointerDelPointer);
     }
     else
     {
@@ -46,14 +55,16 @@ int main(void) {
   
   palSetLineMode(LINE_LED_GREEN,PAL_MODE_OUTPUT_PUSHPULL);
 
-
+  uint64_t* receivedAdress= (uint64_t*)chFifoTakeObjectTimeout(&miFifo, TIME_IMMEDIATE); //Al pointer que me devuelve Take le estoy diciendo que es un pointer a un int de 64bits (8 bytes)
+  (*receivedAdress)=num; //Incrementamos el valor al que hace referencia receivedAdress (nuestro numero que queremos incrementar)
 
   while(true)
   {
    
-    chFifoTakeObjectTimeout(&miFifo, TIME_IMMEDIATE);
-    chFifoSendObject(&miFifo, num);
-    num++;
+    (*receivedAdress)++; //Incrementamos el valor al que hace referencia receivedAdress (nuestro numero que queremos incrementar)
+
+    chFifoSendObject(&miFifo, receivedAdress);
+
     
     palToggleLine(LINE_LED_GREEN);
     chThdSleepMilliseconds(200);
