@@ -7,11 +7,19 @@
 
 #define BUFFER_SIZE 4
 
+struct myStruct
+{
+  char text[15];
+  int id;
+  bool b;
+};
+
 static objects_fifo_t miFifo;
-static uint64_t fifoBuffer[BUFFER_SIZE];
+static struct myStruct fifoBuffer[BUFFER_SIZE];
 static msg_t fifoMailbox[BUFFER_SIZE];
 
-uint64_t num=12345;
+struct myStruct s1;
+int num=2222;
 
 static THD_WORKING_AREA(fifoReceive_thd_wa, 1024);
 static THD_FUNCTION(fifoReceive_thd, arg) {
@@ -22,12 +30,12 @@ static THD_FUNCTION(fifoReceive_thd, arg) {
 
   while(true) {
   //uint64_t valorRecibido=0;
-  uint64_t *pointerObjeto;
+  struct myStruct *pointerObjeto;
 
   if(chFifoReceiveObjectTimeout(&miFifo, (void **)&pointerObjeto, TIME_MS2I(1000))==MSG_OK)
   {
 
-    chprintf(&LPSD1, "Valor recibido: %d \r\n\r\n", (*pointerObjeto));
+    chprintf(&LPSD1, "%s %d %d \r\n\r\n", pointerObjeto->text, pointerObjeto->id, pointerObjeto->b);
 
     //chprintf(&LPSD1, "& a la que apunta pointer %p \r\n\r\n", pointerObjeto);
 
@@ -42,7 +50,7 @@ int main(void) {
   halInit();
   chSysInit();
 
-  chFifoObjectInit(&miFifo,sizeof(uint64_t),BUFFER_SIZE, (void *)&fifoBuffer, &fifoMailbox[0]);
+  chFifoObjectInit(&miFifo,sizeof(struct myStruct),BUFFER_SIZE, (void *)&fifoBuffer, &fifoMailbox[0]);
   
   sdStart(&LPSD1, NULL);
 
@@ -55,13 +63,15 @@ int main(void) {
   while(true)
   {
 
-    uint64_t *receivedAddress= (uint64_t *)chFifoTakeObjectTimeout(&miFifo, TIME_IMMEDIATE); //Al pointer que me devuelve Take le estoy diciendo que es un pointer a un int de 64bits (8 bytes)
+    struct myStruct *receivedAddress= chFifoTakeObjectTimeout(&miFifo, TIME_IMMEDIATE); //Al pointer que me devuelve Take le estoy diciendo que es un pointer a un int de 64bits (8 bytes)
    //copiamos el valor de num a donde apunta el puntero
    
    if(receivedAddress!=NULL)
    {
     //chprintf(&LPSD1, "& que devuelve chTake: %p \r\n", receivedAddress);
-    (*receivedAddress)=num; 
+    strcpy(receivedAddress->text, "Hello world"); 
+    receivedAddress->id=num; 
+    receivedAddress->b=true; 
     chFifoSendObject(&miFifo, receivedAddress);
     num++;
    }
