@@ -18,32 +18,21 @@ static THD_FUNCTION(fifoReceive_thd, arg) {
 
   (void)arg;
   chRegSetThreadName("fifoReceive");
-  sdStart(&LPSD1, NULL);
+ 
 
   while(true) {
-  uint64_t valorRecibido=0;
-  uint64_t *pointerRecibeValor=&valorRecibido;
-  uint64_t **pointerDelPointer=&pointerRecibeValor;
+  //uint64_t valorRecibido=0;
+  uint64_t *pointerObjeto;
 
-
-  if(chFifoReceiveObjectTimeout(&miFifo, &pointerDelPointer, TIME_MS2I(1000))==MSG_OK)
+  if(chFifoReceiveObjectTimeout(&miFifo, (void **)&pointerObjeto, TIME_MS2I(1000))==MSG_OK)
   {
 
-      
-    chprintf(&LPSD1, "Valor recibido 1: %d \r\n", valorRecibido);
-    chprintf(&LPSD1, "Valor recibido 2: %d \r\n", (*pointerRecibeValor));
-    chprintf(&LPSD1, "A lo que apunta pointerDelPointer: %d \r\n", (*pointerDelPointer));
+    chprintf(&LPSD1, "Valor recibido: %d \r\n\r\n", (*pointerObjeto));
 
-    chprintf(&LPSD1, "Pointer del valor recibido: %p \r\n", pointerRecibeValor);
-    chprintf(&LPSD1, "Pointer del pointer del valor recibido: %p \r\n", pointerDelPointer);
-    
-    chFifoReturnObject(&miFifo, (void *)pointerDelPointer);
+    //chprintf(&LPSD1, "& a la que apunta pointer %p \r\n\r\n", pointerObjeto);
+
+    chFifoReturnObject(&miFifo, (void *)pointerObjeto);
     }
-   /*else
-    {
-    chprintf(&LPSD1, "Nada\r\n");
-    }
-    */ 
     
   }
 }
@@ -54,6 +43,9 @@ int main(void) {
   chSysInit();
 
   chFifoObjectInit(&miFifo,sizeof(uint64_t),BUFFER_SIZE, (void *)&fifoBuffer, &fifoMailbox[0]);
+  
+  sdStart(&LPSD1, NULL);
+
   chThdCreateStatic(fifoReceive_thd_wa, sizeof(fifoReceive_thd_wa), NORMALPRIO+3, fifoReceive_thd, NULL);
   
   palSetLineMode(LINE_LED_GREEN,PAL_MODE_OUTPUT_PUSHPULL);
@@ -62,15 +54,13 @@ int main(void) {
 
   while(true)
   {
+
     uint64_t *receivedAddress= (uint64_t *)chFifoTakeObjectTimeout(&miFifo, TIME_IMMEDIATE); //Al pointer que me devuelve Take le estoy diciendo que es un pointer a un int de 64bits (8 bytes)
    //copiamos el valor de num a donde apunta el puntero
    
-   //chprintf(&LPSD1, "Numero al que apunta el pointer que devuelve chTake: %d \r\n", *receivedAddress);
-   //chprintf(&LPSD1, "num: %d \r\n", num);
-
    if(receivedAddress!=NULL)
    {
-    chprintf(&LPSD1, "Pointer que devuelve chTake: %p \r\n", receivedAddress);
+    //chprintf(&LPSD1, "& que devuelve chTake: %p \r\n", receivedAddress);
     (*receivedAddress)=num; 
     chFifoSendObject(&miFifo, receivedAddress);
     num++;
