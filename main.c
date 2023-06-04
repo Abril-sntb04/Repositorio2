@@ -8,7 +8,9 @@
 #define PIPE_SIZE 16
 
 static uint8_t buffer[PIPE_SIZE];
-PIPE_DECL(pipe1, buffer, PIPE_SIZE);
+//PIPE_DECL(pipe1, buffer, PIPE_SIZE);
+
+pipe_t pipe1;
 
 
 static THD_WORKING_AREA(serialDebug_thd_wa, 1024);
@@ -40,7 +42,7 @@ int main(void) {
   chSysInit();
 
   sdStart(&LPSD1, NULL);
-  //chPipeObjectInit(&pipe1, buffer, PIPE_SIZE);
+  chPipeObjectInit(&pipe1, buffer, PIPE_SIZE);
   chThdCreateStatic(serialDebug_thd_wa, sizeof(serialDebug_thd_wa), NORMALPRIO, serialDebug_thd, NULL);
   
 
