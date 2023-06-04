@@ -24,7 +24,7 @@ static THD_FUNCTION(serialDebug_thd, arg) {
 
       //size_t chPipeReadTimeout(pipe_t *pp, uint8_t *bp, size_t n, sysinterval_t timeout);
 
-      size_t bytesRead = chPipeReadTimeout(&pipe1, buf, PIPE_SIZE, TIME_MS2I(500));
+      size_t bytesRead = chPipeReadTimeout(&pipe1, buf, PIPE_SIZE, TIME_IMMEDIATE);
       chprintf(&LPSD1, "Bytes read: %d\r\n", bytesRead);
       chprintf(&LPSD1, "Message: %s\r\n", buf);
        chThdSleepMilliseconds(500);
@@ -48,7 +48,7 @@ int main(void) {
 
   while(true)
   {
-    size_t bytesWritten = chPipeWriteTimeout(&pipe1, "Hello", PIPE_SIZE, TIME_MS2I(500));
+    size_t bytesWritten = chPipeWriteTimeout(&pipe1, "Hello", PIPE_SIZE, TIME_IMMEDIATE);
 
     //size_t chPipeWriteTimeout(pipe_t *pp, const uint8_t *bp, size_t n, sysinterval_t timeout);
 
