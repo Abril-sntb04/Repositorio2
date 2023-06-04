@@ -5,79 +5,57 @@
 #include <chprintf.h>
 #include <string.h>
 
-#define BUFFER_SIZE 4
+#define PIPE_SIZE 16
 
-struct myStruct
-{
-  char text[15];
-  int id;
-  bool b;
-};
+static uint8_t buffer[PIPE_SIZE];
+PIPE_DECL(pipe1, buffer, PIPE_SIZE);
 
-static objects_fifo_t miFifo;
-static struct myStruct fifoBuffer[BUFFER_SIZE];
-static msg_t fifoMailbox[BUFFER_SIZE];
 
-struct myStruct s1;
-int num=2222;
-
-static THD_WORKING_AREA(fifoReceive_thd_wa, 1024);
-static THD_FUNCTION(fifoReceive_thd, arg) {
+static THD_WORKING_AREA(serialDebug_thd_wa, 1024);
+static THD_FUNCTION(serialDebug_thd, arg) {
 
   (void)arg;
-  chRegSetThreadName("fifoReceive");
- 
+  chRegSetThreadName("serialDebug");
+
 
   while(true) {
-  //uint64_t valorRecibido=0;
-  struct myStruct *pointerObjeto;
-
-  if(chFifoReceiveObjectTimeout(&miFifo, (void **)&pointerObjeto, TIME_MS2I(1000))==MSG_OK)
-  {
-
-    chprintf(&LPSD1, "%s %d %d \r\n\r\n", pointerObjeto->text, pointerObjeto->id, pointerObjeto->b);
-
-    //chprintf(&LPSD1, "& a la que apunta pointer %p \r\n\r\n", pointerObjeto);
-
-    chFifoReturnObject(&miFifo, (void *)pointerObjeto);
-    }
     
+    uint8_t buf[PIPE_SIZE];
+
+      //size_t chPipeReadTimeout(pipe_t *pp, uint8_t *bp, size_t n, sysinterval_t timeout);
+
+      size_t bytesRead = chPipeReadTimeout(&pipe1, buf, PIPE_SIZE, TIME_MS2I(500));
+      chprintf(&LPSD1, "Bytes read: %d\r\n", bytesRead);
+      chprintf(&LPSD1, "Message: %s\r\n", buf);
+       chThdSleepMilliseconds(500);
+
   }
 }
+
+
 
 int main(void) {
 
   halInit();
   chSysInit();
 
-  chFifoObjectInit(&miFifo,sizeof(struct myStruct),BUFFER_SIZE, (void *)&fifoBuffer, &fifoMailbox[0]);
-  
   sdStart(&LPSD1, NULL);
-
-  chThdCreateStatic(fifoReceive_thd_wa, sizeof(fifoReceive_thd_wa), NORMALPRIO+3, fifoReceive_thd, NULL);
+  //chPipeObjectInit(&pipe1, buffer, PIPE_SIZE);
+  chThdCreateStatic(serialDebug_thd_wa, sizeof(serialDebug_thd_wa), NORMALPRIO, serialDebug_thd, NULL);
   
-  palSetLineMode(LINE_LED_GREEN,PAL_MODE_OUTPUT_PUSHPULL);
- 
 
+  palSetLineMode(LINE_LED_GREEN,PAL_MODE_OUTPUT_PUSHPULL);
 
   while(true)
   {
+    size_t bytesWritten = chPipeWriteTimeout(&pipe1, "Hello", PIPE_SIZE, TIME_MS2I(500));
 
-    struct myStruct *receivedAddress= chFifoTakeObjectTimeout(&miFifo, TIME_IMMEDIATE); //Al pointer que me devuelve Take le estoy diciendo que es un pointer a un int de 64bits (8 bytes)
-   //copiamos el valor de num a donde apunta el puntero
-   
-   if(receivedAddress!=NULL)
-   {
-    //chprintf(&LPSD1, "& que devuelve chTake: %p \r\n", receivedAddress);
-    strcpy(receivedAddress->text, "Hello world"); 
-    receivedAddress->id=num; 
-    receivedAddress->b=true; 
-    chFifoSendObject(&miFifo, receivedAddress);
-    num++;
-   }
-   
+    //size_t chPipeWriteTimeout(pipe_t *pp, const uint8_t *bp, size_t n, sysinterval_t timeout);
+
+   chprintf(&LPSD1, "Bytes written: %d\r\n", bytesWritten);
+    
     palToggleLine(LINE_LED_GREEN);
-    chThdSleepMilliseconds(2000);
+    chThdSleepMilliseconds(500);
     
   }
 }
